@@ -83,17 +83,17 @@ jobs:
           file="./rom.ext"
           if [ ! -f "$file" ]; then echo "File not found"; exit 1; fi
 
-          # 2a. 检查是否为 zip/gzip
-          mime=$(file -b --mime-type "$file")
-          case "$mime" in
-            application/zip)
+          # 2a. 用魔数判断 zip/gzip（file 会把带 META-INF/ 的 OTA zip 误判成 JAR）
+          MAGIC=$(xxd -l 4 -p "$file")
+          case "$MAGIC" in
+            504b0304)
               new_name="${file%.*}.zip"
               echo "Detected ZIP, renaming to $new_name"
               mv -n "$file" "$new_name"
               echo "RENAMED_FILE=$new_name" >> $GITHUB_ENV
               exit 0
               ;;
-            application/gzip)
+            1f8b*)
               new_name="${file%.*}.tar.gz"
               echo "Detected GZIP, renaming to $new_name"
               mv -n "$file" "$new_name"
