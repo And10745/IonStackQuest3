@@ -53,6 +53,9 @@ jobs:
       - name: Download Magisk and extract magiskboot
         run: |
           MAGISK_URL="${{ inputs.magisk_url }}"
+          if [ -z "$MAGISK_URL" ]; then
+            MAGISK_URL="https://github.com/topjohnwu/Magisk/releases/latest/download/app-debug.apk"
+          fi
           echo "[*] Downloading Magisk from: $MAGISK_URL"
           wget -nv -O magisk.apk "$MAGISK_URL"
 
@@ -75,19 +78,48 @@ jobs:
           ROM_URL="${{ inputs.rom_url }}"
           echo "[*] Downloading: $ROM_URL"
 
-          # Detect extension from URL
-          if echo "$ROM_URL" | grep -qE '\.tar\.gz$|\.tgz$'; then
-            EXT="tar.gz"
-          elif echo "$ROM_URL" | grep -qE '\.zip$'; then
-            EXT="zip"
-          elif echo "$ROM_URL" | grep -qE '\.bin$'; then
-            EXT="bin"
+          wget -nv -O "rom.ext" "$ROM_URL"
+          ls -lh "rom.ext"
+          file="./rom.ext"
+          if [ ! -f "$file" ]; then echo "File not found"; exit 1; fi
+
+          # 2a. 检查是否为 zip/gzip
+          mime=$(file -b --mime-type "$file")
+          case "$mime" in
+            application/zip)
+              new_name="${file%.*}.zip"
+              echo "Detected ZIP, renaming to $new_name"
+              mv -n "$file" "$new_name"
+              echo "RENAMED_FILE=$new_name" >> $GITHUB_ENV
+              exit 0
+              ;;
+            application/gzip)
+              new_name="${file%.*}.tar.gz"
+              echo "Detected GZIP, renaming to $new_name"
+              mv -n "$file" "$new_name"
+              echo "RENAMED_FILE=$new_name" >> $GITHUB_ENV
+              exit 0
+              ;;
+          esac
+
+          # 2b. 不是压缩包，尝试用 magiskboot 检测 payload
+          if ./libmagiskboot.so extract "$file" >/dev/null 2>&1; then
+            echo "Valid payload.bin"
+            mv "$file" payload.bin
+            echo "RENAMED_FILE=payload.bin" >> $GITHUB_ENV
           else
-            EXT="rom"
+            # 用魔数判断是否为直接下载的 boot.img
+            MAGIC=$(xxd -l 8 -p "$file")
+            if [ "$MAGIC" = "414e44524f494421" ]; then
+              echo "Valid boot.img (ANDROID! magic)"
+              mv "$file" boot.img
+              echo "RENAMED_FILE=boot.img" >> $GITHUB_ENV
+            else
+              echo "[!] Invalid file: not zip/gzip, payload.bin, or boot.img"
+              exit 1
+            fi
           fi
 
-          wget -nv -O "rom.$EXT" "$ROM_URL"
-          ls -lh "rom.$EXT"
 
       # ============================================================
       # Extract ROM
@@ -96,7 +128,7 @@ jobs:
         run: |
           mkdir -p rom_out
 
-          ROM_FILE=$(ls rom.* 2>/dev/null | head -1)
+          ROM_FILE="${RENAMED_FILE:-$(ls rom.* 2>/dev/null | head -1)}"
           if [ -z "$ROM_FILE" ]; then
             echo "[!] No ROM file found"
             exit 1
@@ -173,16 +205,15 @@ jobs:
           fi
 
           # --- Strategy 4: Downloaded file IS a boot image ---
-          ROM_FILE=$(ls rom.* 2>/dev/null | head -1)
-          if [ -f "$ROM_FILE" ]; then
-            MAGIC=$(xxd -l 8 -p "$ROM_FILE")
+          for f in $(find rom_out -type f 2>/dev/null); do
+            MAGIC=$(xxd -l 8 -p "$f")
             if [ "$MAGIC" = "414e44524f494421" ]; then
               echo "[*] Downloaded file IS a boot image (ANDROID! magic)"
-              cp "$ROM_FILE" boot.img
+              cp "$f" boot.img
               echo "source=standalone" >> "$GITHUB_OUTPUT"
               exit 0
             fi
-          fi
+          done
 
           echo "[!] ERROR: Cannot find payload.bin, boot.img, or init_boot.img"
           echo "[!] All files found:"
