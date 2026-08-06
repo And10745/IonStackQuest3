@@ -18,7 +18,7 @@ Root exploit for Meta Quest 3, adapted from IonStack (CVE-2026-43499) in [CyberM
 Kernels of similar versions are likely to work without re-adaptation.
 
 ## Update
-Meta has fixed [CVE-2026-43499](https://github.com/advisories.com/adories/GHc6-996-90005) in Quest 3 incremental [`52345320040100520`](https://github.com/facebookincubator/oculus-linux-kernel/commit/ab1c46013e3f279a9d033a1c3cf0542c1d32d46c) and Quest 3s incremental [`3697600032300610`](https://github.com/facebookincubator/oculus-linux-kernel/commit/6d15b6aa864d26f742466c66ad3c2929b15ba786). If you are using an incremental build equal or later than these versions, this exploit will not succeed.
+Meta has fixed CVE-2026-43499 in Quest 3 incremental build [`52345320040100520`](https://github.com/facebookincubator/oculus-linux-kernel/commit/ab1c46013e3f279a9d033a1c3cf0542c1d32d46c) and Quest 3s incremental build [`3697600032300610`](https://github.com/facebookincubator/oculus-linux-kernel/commit/6d15b6aa864d26f742466c66ad3c2929b15ba786). Devices running these builds or later are no longer vulnerable to this exploit.
 
 ## Usage
 
