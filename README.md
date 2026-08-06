@@ -17,6 +17,9 @@ Root exploit for Meta Quest 3, adapted from IonStack (CVE-2026-43499) in [CyberM
 
 Kernels of similar versions are likely to work without re-adaptation.
 
+## Update
+Meta has fixed [CVE-2026-43499](https://github.com/advisories.com/adories/GHc6-996-90005) in Quest 3 incremental [`52345320040100520`](https://github.com/facebookincubator/oculus-linux-kernel/commit/ab1c46013e3f279a9d033a1c3cf0542c1d32d46c) and Quest 3s incremental [`3697600032300610`](https://github.com/facebookincubator/oculus-linux-kernel/commit/6d15b6aa864d26f742466c66ad3c2929b15ba786). If you are using an incremental build equal or later than these versions, this exploit will not succeed.
+
 ## Usage
 
 ### 1. Obtain ionstack.conf
@@ -35,9 +38,16 @@ If your firmware version differs, you can auto-generate the config via GitHub Ac
    adb shell getprop ro.build.version.incremental
    ```
 3. **Download the matching firmware.** If you don't know the download URL, use the following (replace `{incremental}` with the value from the previous step):
+
+   Quest3
    ```
    https://files.cocaine.trade/firmware/meta/Quest%203/q3_{incremental}.zip
    ```
+   Quest3s
+   ```
+   https://files.cocaine.trade/firmware/meta/Quest%203S/q3s_{incremental}.zip
+   ```
+
 4. **Run the Action:** In your forked repo, run the `generate-ionstack-config` workflow, fill in the firmware download URL, wait for completion, and download the generated `ionstack.conf`.
 
 ### 2. Obtain preload
@@ -73,6 +83,9 @@ adb push ionstack.conf /data/local/tmp/
 # Make executable and run
 adb shell chmod +x /data/local/tmp/preload
 adb shell /data/local/tmp/preload
+
+# Optional. If you want to run commands like pm directly in root shell without root manager.
+runcon u:r:shell:s0 /system/bin/sh
 ```
 
 If everything works, you should get a root shell.
@@ -90,3 +103,4 @@ If everything works, you should get a root shell.
 - [CyberMeowfia](https://github.com/NebuSec/CyberMeowfia) — original IonStack (CVE-2026-43499) exploit
 - [@zhuowei/cheese](https://github.com/zhuowei/cheese) — key adaptation info
 - [kernelsnitch](https://github.com/lukasmaar/kernelsnitch) — kernel module
+- [@ptrpaws/cocaine.trade](https://github.com/ptrpaws/cocaine.trade) — firmware links
